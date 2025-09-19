@@ -12,53 +12,73 @@
 using namespace std;
 
 #define MAX 987654321
+int N, W[16][16], cache[16][1 << 16], start_node;
 
-// cache[방문한 도시 비트마스크][현재도시] = 최소비용
-int N, W[20][20], cache[1<<16][16], start;
+int dfs(int cur, int vis) {
+    // 1. 베이스 케이스(Base Case) 수정
+    // 이제 W[cur][start_node]가 0인 경우는 없으며, 경로가 없다면 MAX 값을 가집니다.
+    // 따라서 바로 W[cur][start_node]를 반환하면 됩니다.
+    if (vis == (1 << N) - 1) {
+        return W[cur][start_node];
+    }
 
-int dfs(int vis, int cur) {
-	
-	if (vis == (1<<N) - 1) { // vis가 이진수로 11111111 이라면? 
-		if (W[cur][start] != 0)
-			return W[cur][start];// 현재 비용 리턴? 이미 dfs 들어올 때 w ij로 비용을 더한다. 
-		else return MAX;
-	}
-	int& ret = cache[vis][cur];
-	if (ret != -1) {
-		return ret;
-	}
-	
-	ret = MAX;
-	for (int i = 0; i < N; i++) {
-		if (W[cur][i] != 0 && !(vis & 1 << i)) {
-			ret = min(ret, dfs(vis | 1 << i, i) + W[cur][i]);
-		}
-	}
-	return ret;
+    int& ret = cache[cur][vis];
+    if (ret != -1) {
+        return ret;
+    }
+
+    ret = MAX;
+    for (int i = 0; i < N; i++) {
+        // 2. 방문 여부 확인 로직 수정
+        // main에서 W[cur][i]가 0인 경로를 미리 MAX로 처리했으므로,
+        // 여기서 W[cur][i] != 0 체크가 더 이상 필요 없습니다.
+        if (!(vis & (1 << i))) {
+            int next_cost = dfs(i, vis | (1 << i));
+
+            // next_cost나 W[cur][i]가 MAX(INF)가 아닌 유효한 경로일 때만 갱신
+            if (next_cost != MAX && W[cur][i] != MAX) {
+                ret = min(ret, next_cost + W[cur][i]);
+            }
+        }
+    }
+    return ret;
 }
 
 int main() {
-	
-	
-	scanf("%d", &N);
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < N; j++) {
-		
-			scanf("%d", &W[i][j]);
-		}
-	}
-	int retVal = MAX;
-	for (int i = 0; i < N; i++) {
-		memset(cache, -1, sizeof(cache));
-		start = i;
-		retVal = min(retVal,dfs(1 << i, i));
+    // 입출력 최적화 (필요 시 사용)
+    // std::ios_base::sync_with_stdio(false);
+    // std::cin.tie(NULL);
 
-	}
+    scanf("%d", &N);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            scanf("%d", &W[i][j]);
+        }
+    }
 
-	printf("%d", retVal);
+    // ===================================
+    // 요청하신 사전 처리 방식 적용
+    // ===================================
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            // 자기 자신으로 가는 경로가 아니고, 경로 비용이 0이면 (즉, 길이 없으면)
+            // MAX 값으로 변경하여 갈 수 없는 경로임을 명시합니다.
+            if (i != j && W[i][j] == 0) {
+                W[i][j] = MAX;
+            }
+        }
+    }
 
+    // 0번 도시에서 출발하는 경우로 고정
+    start_node = 0;
+    memset(cache, -1, sizeof(cache));
+
+    int result = dfs(start_node, 1 << start_node);
+
+    printf("%d", result);
+
+    return 0;
 }
-
 
 /*
 * dfs?
